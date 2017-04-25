@@ -576,6 +576,95 @@ $ hexo d
 
 
   
+    <article id="title-Android7-0以上更新app出现崩溃" class="article article-type-title  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/04/26/Android7-0以上更新app出现崩溃/">Android7.0以上更新app出现崩溃</a>
+    </h1>
+  
+
+        
+        <a href="/2017/04/26/Android7-0以上更新app出现崩溃/" class="archive-article-date">
+  	<time datetime="2017-04-25T16:39:51.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-04-26</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>今天在使用Android7.0手机升级app的时出现了该问题，然后上StackOverFlow查了一下,找到了几种方法，推荐使用第二种，简单快捷</p>
+<p>The app crashes when trying to open a file. It work below Android N, but on Android N it crashes. It only crashes when I try to open a file from the SD card, not from the system partition.</p>
+<p> 解决方法 ①：</p>
+<blockquote>
+<p>If your targetSdkVersion is 24 or higher, we have to use FileProvider class to give access to the particular file or folder to make them accessible for other apps.</p>
+</blockquote>
+<p>Steps to replace file:// uri with content:// uri:</p>
+<ul>
+<li>add a FileProvider tag in AndroidManifest.xml under tag.</li>
+</ul>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version="1.0" encoding="utf-8"?&gt;</div><div class="line">&lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"</div><div class="line">    ...</div><div class="line">    &lt;application</div><div class="line">        ...</div><div class="line">        &lt;provider</div><div class="line">            android:name="android.support.v4.content.FileProvider"</div><div class="line">            android:authorities="$&#123;applicationId&#125;.provider"</div><div class="line">            android:exported="false"</div><div class="line">            android:grantUriPermissions="true"&gt;</div><div class="line">            &lt;meta-data</div><div class="line">                android:name="android.support.FILE_PROVIDER_PATHS"</div><div class="line">                android:resource="@xml/provider_paths"/&gt;</div><div class="line">        &lt;/provider&gt;</div><div class="line">    &lt;/application&gt;</div><div class="line">&lt;/manifest&gt;</div></pre></td></tr></table></figure>
+<ul>
+<li>then create a provider_paths.xml file in xml folder under res folder. Folder may be needed to create if it doesn’t exist. The content of the file is shown below. It describes that we would like to share access to the External Storage at root folder (path=”.”) with the name external_files.</li>
+</ul>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">&lt;?xml version="1.0" encoding="utf-8"?&gt;</div><div class="line"><span class="tag">&lt;<span class="name">paths</span> <span class="attr">xmlns:android</span>=<span class="string">"http://schemas.android.com/apk/res/android"</span>&gt;</span></div><div class="line">    <span class="tag">&lt;<span class="name">external-path</span> <span class="attr">name</span>=<span class="string">"external_files"</span> <span class="attr">path</span>=<span class="string">"."</span>/&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">paths</span>&gt;</span></div></pre></td></tr></table></figure>
+<ul>
+<li>The final step is to change the line of code below in</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Uri photoURI = Uri.fromFile(createImageFile());</div></pre></td></tr></table></figure>
+<p>to</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Uri photoURI = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + <span class="string">".provider"</span>, createImageFile());</div></pre></td></tr></table></figure>
+<p>解决方法 ②:</p>
+<p>Besides the solution using the FileProvider, there is another way to work around this. use this codes in your project application onCreate();</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">StrictMode.VmPolicy.Builder builder = <span class="keyword">new</span> StrictMode.VmPolicy.Builder();</div><div class="line">StrictMode.setVmPolicy(builder.build());</div><div class="line">builder.detectFileUriExposure()</div></pre></td></tr></table></figure>
+<p>May be wrong in the third line</p>
+<p>you can run like this:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">StrictMode.VmPolicy.Builder builder = <span class="keyword">new</span> StrictMode.VmPolicy.Builder();</div><div class="line">        StrictMode.setVmPolicy(builder.build());</div><div class="line">        <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.N) &#123;</div><div class="line">            builder.detectFileUriExposure();</div><div class="line">        &#125;</div></pre></td></tr></table></figure>
+<p><a href="http://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed" target="_blank" rel="external">StackOverFlow:</a><br><a href="http://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed" target="_blank" rel="external">http://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed</a></p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Android</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/04/26/Android7-0以上更新app出现崩溃/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+  
     <article id="title-Destiny" class="article article-type-title  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
